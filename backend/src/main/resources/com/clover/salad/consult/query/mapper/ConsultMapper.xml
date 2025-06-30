@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.clover.salad.consult.query.mapper.ConsultMapper">
+
+    <resultMap id="consultResultMap" type="com.clover.salad.consult.query.dto.ConsultQueryDTO">
+        <id property="id" column="id"/>
+        <result property="consultAt" column="consult_at"/>
+        <result property="content" column="content"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="etc" column="etc"/>
+        <result property="feedbackScore" column="feedback_score"/>
+        <result property="employeeId" column="employee_id"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="employeeName" column="employee_name"/>
+        <result property="employeeLevelLabel" column="employee_level_label"/>
+    </resultMap>
+
+    <!-- 관리자 조회 -->
+    <select id="findAll" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        ORDER BY c.consult_at DESC
+    </select>
+
+    <!-- 팀장 조회 -->
+    <select id="findConsultsByDepartmentId" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE c.employee_id in (select
+                                        id
+                                   from employee
+                                  where department_id = #{departmentId})
+          AND c.is_deleted = false
+        ORDER BY c.consult_at DESC
+    </select>
+
+    <select id="findConsultById" parameterType="int" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE c.id = #{id}
+    </select>
+
+    <select id="findConsultByIdIncludingDeleted" parameterType="int" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE c.id = #{id}
+    </select>
+
+    <select id="findConsultByIdExcludingDeleted" parameterType="int" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE c.id = #{id} AND c.is_deleted = false
+    </select>
+
+    <!-- 사원 조회 -->
+    <select id="findConsultsByEmployeeId" parameterType="int" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE c.employee_id = #{employeeId}
+          AND c.is_deleted = false
+        ORDER BY c.consult_at DESC
+    </select>
+
+    <select id="findConsultByEmployeeIdAndConsultId" parameterType="map" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE c.employee_id = #{employeeId}
+          AND c.id = #{consultId}
+          AND c.is_deleted = false
+    </select>
+
+    <select id="findConsultByEmployeeIdAndConsultIdIncludingDeleted" parameterType="map" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE c.employee_id = #{employeeId}
+          AND c.id = #{consultId}
+    </select>
+
+    <select id="findConsultsByCustomerId" resultMap="consultResultMap">
+        SELECT
+            c.id,
+            c.employee_id,
+            c.customer_id,
+            c.consult_at,
+            c.content,
+            c.feedback_score,
+            c.etc,
+            c.is_deleted,
+            cu.name AS customer_name,
+            e.name AS employee_name,
+            e.level AS employee_level_label
+        FROM
+            consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        WHERE
+            c.customer_id = #{customerId}
+            AND c.is_deleted = FALSE
+    </select>
+
+    <select id="findCustomerIdsByEmployeeId" resultType="int">
+        SELECT DISTINCT
+            customer_id
+        FROM
+            consultation
+        WHERE
+            employee_id = #{employeeId}
+    </select>
+
+    <select id="searchAll" parameterType="map" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        <where>
+            <if test="consultDateFrom != null and consultDateFrom != ''">
+                AND c.consult_at >= #{consultDateFrom}
+            </if>
+            <if test="consultDateTo != null and consultDateTo != ''">
+                AND c.consult_at &lt;= #{consultDateTo}
+            </if>
+            <if test="content != null and content != ''">
+                AND c.content LIKE CONCAT('%', #{content}, '%')
+            </if>
+            <if test="customerName != null and customerName != ''">
+                AND cu.name LIKE CONCAT('%', #{customerName}, '%')
+            </if>
+            <if test="minScore != null">
+                AND c.feedback_score >= #{minScore}
+            </if>
+            <if test="maxScore != null">
+                AND c.feedback_score &lt;= #{maxScore}
+            </if>
+        </where>
+        ORDER BY c.consult_at DESC
+    </select>
+
+    <select id="searchMyConsults" parameterType="map" resultMap="consultResultMap">
+        SELECT c.id, c.consult_at, c.content, c.is_deleted, c.etc, c.feedback_score, c.employee_id, c.customer_id,
+               cu.name AS customer_name,
+               e.name AS employee_name,
+               e.level AS employee_level_label
+        FROM consultation c
+        LEFT JOIN customer cu ON c.customer_id = cu.id
+        LEFT JOIN employee e ON c.employee_id = e.id
+        <where>
+            c.employee_id = #{employeeId}
+            AND c.is_deleted = false
+            <if test="consultDateFrom != null and consultDateFrom != ''">
+                AND c.consult_at >= #{consultDateFrom}
+            </if>
+            <if test="consultDateTo != null and consultDateTo != ''">
+                AND c.consult_at &lt;= #{consultDateTo}
+            </if>
+            <if test="content != null and content != ''">
+                AND c.content LIKE CONCAT('%', #{content}, '%')
+            </if>
+            <if test="customerName != null and customerName != ''">
+                AND cu.name LIKE CONCAT('%', #{customerName}, '%')
+            </if>
+            <if test="minScore != null">
+                AND c.feedback_score >= #{minScore}
+            </if>
+            <if test="maxScore != null">
+                AND c.feedback_score &lt;= #{maxScore}
+            </if>
+        </where>
+        ORDER BY c.consult_at DESC
+    </select>
+</mapper>

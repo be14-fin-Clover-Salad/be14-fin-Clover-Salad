@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.clover.salad.customer.query.mapper.CustomerMapper">
+
+  <resultMap id="CustomerResultMap" type="com.clover.salad.customer.query.dto.CustomerQueryDTO">
+    <id property="id" column="id"/>
+    <result property="name" column="name"/>
+    <result property="birthdate" column="birthdate"/>
+    <result property="address" column="address"/>
+    <result property="phone" column="phone"/>
+    <result property="email" column="email"/>
+    <result property="registerAt" column="register_at"/>
+    <result property="isDeleted" column="is_deleted"/>
+    <result property="type" column="type"/>
+    <result property="etc" column="etc"/>
+  </resultMap>
+
+  <select id="findAll" resultMap="CustomerResultMap">
+    SELECT
+           c.id
+         , c.name
+         , c.birthdate
+         , c.address
+         , c.phone
+         , c.email
+         , c.register_at
+         , c.is_deleted
+         , CASE c.type
+             WHEN '고객' THEN 'CUSTOMER'
+             WHEN '리드' THEN 'PROSPECT'
+             ELSE c.type
+           END as type
+         , c.etc
+      FROM customer c
+     ORDER BY c.register_at DESC;
+  </select>
+
+  <select id="findCustomersByDepartmentId" resultMap="CustomerResultMap">
+    select 
+           c.id
+         , c.name
+         , c.birthdate
+         , c.address
+         , c.phone
+         , c.email
+         , c.register_at
+         , c.is_deleted
+         , CASE c.type
+             WHEN '고객' THEN 'CUSTOMER'
+             WHEN '리드' THEN 'PROSPECT'
+             ELSE c.type
+           END as type
+         , c.etc
+      from customer c
+     where c.id in (select
+                           customer_id
+                      from consultation
+                     where employee_id in (select
+                                                  id
+                                             from employee
+                                            where department_id = #{departmentId}))
+     order by register_at desc;
+  </select>
+
+  <select id="findCustomerById" resultMap="CustomerResultMap">
+    SELECT
+           c.id
+         , c.name
+         , c.birthdate
+         , c.address
+         , c.phone
+         , c.email
+         , c.register_at
+         , c.is_deleted
+         , CASE c.type
+             WHEN '고객' THEN 'CUSTOMER'
+             WHEN '리드' THEN 'PROSPECT'
+             ELSE c.type
+           END as type
+         , c.etc
+      FROM customer c
+     WHERE c.id = #{id}
+       AND is_deleted = false
+     ORDER BY c.register_at DESC;
+  </select>
+
+  <select id="findCustomerByIdExcludingDeleted" resultMap="CustomerResultMap">
+    SELECT
+           c.id
+         , c.name
+         , c.birthdate
+         , c.address
+         , c.phone
+         , c.email
+         , c.register_at
+         , c.is_deleted
+         , CASE c.type
+             WHEN '고객' THEN 'CUSTOMER'
+             WHEN '리드' THEN 'PROSPECT'
+             ELSE c.type
+           END as type
+         , c.etc
+      FROM customer c
+     WHERE c.id = #{id}
+       AND c.is_deleted = false
+  </select>
+
+  <select id="findCustomersByIds" resultMap="CustomerResultMap">
+    SELECT
+           c.id
+         , c.name
+         , c.birthdate
+         , c.address
+         , c.phone
+         , c.email
+         , c.register_at
+         , c.is_deleted
+         , CASE c.type
+             WHEN '고객' THEN 'CUSTOMER'
+             WHEN '리드' THEN 'PROSPECT'
+             ELSE c.type
+           END as type
+         , c.etc
+      FROM customer c
+     WHERE c.id IN
+    <foreach item="id" collection="customerIds" open="(" separator="," close=")">
+         #{id}
+    </foreach>
+       AND is_deleted = false
+  </select>
+
+  <select id="findRegisteredCustomerId" resultType="int">
+    SELECT c.id
+      FROM customer c
+     WHERE c.name = #{customerName}
+       AND c.birthdate = #{customerBirthdate}
+       AND c.phone = #{customerPhone}
+       AND c.is_deleted = false
+  </select>
+
+  <!-- 계약 존재 여부 조회 -->
+  <select id="existsContractByCustomer" resultType="boolean">
+    SELECT EXISTS (
+      SELECT 1
+        FROM contract c
+        JOIN customer cu ON c.customer_id = cu.id
+       WHERE cu.name = #{name}
+         AND cu.birthdate = #{birthdate}
+         AND cu.phone = #{phone}
+         AND cu.is_deleted = false
+    )
+  </select>
+
+  <!-- 상담 존재 여부 조회 -->
+  <select id="existsConsultByCustomer" resultType="boolean">
+    SELECT EXISTS (
+      SELECT 1
+        FROM consultation cs
+        JOIN customer cu ON cs.customer_id = cu.id
+      WHERE cu.name = #{name}
+        AND cu.birthdate = #{birthdate}
+        AND cu.phone = #{phone}
+        AND cu.is_deleted = false
+    )
+  </select>
+
+  <select id="findCustomersByEmployeeId" resultMap="CustomerResultMap">
+      SELECT
+          c.id, c.name, c.birthdate, c.address, c.phone, c.email,
+          c.register_at, c.is_deleted,
+          CASE c.type
+              WHEN '고객' THEN 'CUSTOMER'
+              WHEN '리드' THEN 'PROSPECT'
+              ELSE c.type
+          END as type,
+          c.etc
+      FROM customer c
+      JOIN consultation con ON c.id = con.customer_id
+      WHERE con.employee_id = #{employeeId}
+        AND c.is_deleted = false
+        AND con.is_deleted = false
+      GROUP BY c.id
+  </select>
+
+  <select id="findCustomersByCondition" resultMap="CustomerResultMap">
+    SELECT
+      c.id, c.name, c.birthdate, c.address, c.phone, c.email,
+      c.register_at, c.is_deleted,
+      CASE c.type
+        WHEN '고객' THEN 'CUSTOMER'
+        WHEN '리드' THEN 'PROSPECT'
+        ELSE c.type
+      END as type,
+      c.etc
+    FROM customer c
+    JOIN consultation con ON c.id = con.customer_id
+    WHERE con.employee_id = #{employeeId}
+      AND c.is_deleted = false
+      AND con.is_deleted = false
+    <if test="name != null and name != ''">
+        AND c.name LIKE CONCAT('%', #{name}, '%')
+    </if>
+    <if test="phone != null and phone != ''">
+        AND c.phone LIKE CONCAT('%', #{phone}, '%')
+    </if>
+    <if test="type != null and type != ''">
+      AND (
+        (#{type} = 'CUSTOMER' AND c.type = '고객')
+        OR
+        (#{type} = 'PROSPECT' AND c.type = '리드')
+      )
+    </if>
+    <if test="birthdateFrom != null and birthdateFrom != ''">
+        AND c.birthdate &gt;= #{birthdateFrom}
+    </if>
+    <if test="birthdateTo != null and birthdateTo != ''">
+        AND c.birthdate &lt;= #{birthdateTo}
+    </if>
+    <if test="registerAtFrom != null and registerAtFrom != ''">
+        AND c.register_at &gt;= #{registerAtFrom}
+    </if>
+    <if test="registerAtTo != null and registerAtTo != ''">
+        AND c.register_at &lt;= #{registerAtTo}
+    </if>
+    GROUP BY c.id
+  </select>
+
+</mapper>
